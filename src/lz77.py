@@ -3,7 +3,31 @@ from itertools import cycle, islice
 
 
 class LZ77:
-    """LZ77 Algorithm Implementation."""
+    """LZ77 Algorithm Implementation.
+
+    Either raw text or compressed data can be used to initialize the class.
+    compress() will use the raw data to compress it.
+    decompress() will use the compressed data to decompress it.
+
+    Attributes:
+        buffer_size (int): Size of the buffer, defaults to 256
+        lookahead_size (int): How far ahead to look for matches, defaults to 256
+        _buffer (bytes): Buffer, used between methods
+        compressed_data (bytes): Compressed data
+        raw_data (str): Raw data
+        _raw_data_bytes (bytes): Raw data in bytes
+
+    Methods:
+        compress(): Compresses a string using the LZ77 algorithm.
+        _find_match(): Finds the longest match in the buffer, used by compress().
+        set_compressed(): Sets the compressed data.
+        compress_and_set(): Compresses the data and saves it to a variable.
+        decompress(): Decompresses the data.
+        set_raw(): Sets the raw data.
+        decompress_and_set(): Decompresses the data and saves it to a variable.
+        save_compressed(): Saves the compressed data to a file.
+        save_raw(): Saves the raw data to a file.
+    """
 
     def __init__(
         self,
@@ -14,31 +38,32 @@ class LZ77:
     ) -> None:
         self.buffer_size = buffer_size
         self.lookahead_size = lookahead_size
-        self.buffer: bytes = b""
+        self._buffer: bytes = b""
         self.compressed_data: bytes = compressed_data
-        self.raw_data_bytes: bytes = raw_data.encode("utf-8")
+        self._raw_data_bytes: bytes = raw_data.encode("utf-8")
         self.raw_data: str = raw_data
 
     def compress(self) -> list[tuple[int, int, int]]:
         """Compresses a string using the LZ77 algorithm.
 
         Returns:
-            list[tuple[int, int, int]]: Compressed data
+            list[tuple[int, int, int]]: Compressed data. Format:
+            [(offset, length, char), ...]
         """
         compressed = []
         i = 0
-        while i < len(self.raw_data_bytes):
-            offset, length, char = self.find_match(i)
+        while i < len(self._raw_data_bytes):
+            offset, length, char = self._find_match(i)
             compressed.append((offset, length, char))
-            self.buffer += self.raw_data_bytes[i : i + length + 1]
+            self._buffer += self._raw_data_bytes[i : i + length + 1]
             i += length + 1
-            if len(self.buffer) > self.buffer_size:
-                self.buffer = self.buffer[-self.buffer_size :]
+            if len(self._buffer) > self.buffer_size:
+                self._buffer = self._buffer[-self.buffer_size :]
 
-        self.buffer = b""
+        self._buffer = b""
         return compressed
 
-    def find_match(self, position: int) -> tuple[int, int, int]:
+    def _find_match(self, position: int) -> tuple[int, int, int]:
         """Finds the longest match in the buffer.
 
         Args:
@@ -49,30 +74,30 @@ class LZ77:
             the offset of the match and the character after the match in bytes
         """
         possible_matches = []
-        for i in range(len(self.buffer)):
-            if self.buffer[i] == self.raw_data_bytes[position]:
+        for i in range(len(self._buffer)):
+            if self._buffer[i] == self._raw_data_bytes[position]:
                 length = 0
                 for length in range(self.lookahead_size):
-                    if position + length >= len(self.raw_data_bytes):
+                    if position + length >= len(self._raw_data_bytes):
                         break
                     if (
-                        self.buffer[i + length % (len(self.buffer) - i)]
-                        != self.raw_data_bytes[position + length]
+                        self._buffer[i + length % (len(self._buffer) - i)]
+                        != self._raw_data_bytes[position + length]
                     ):
                         break
-                possible_matches.append((len(self.buffer) - i - 1, length))
+                possible_matches.append((len(self._buffer) - i - 1, length))
 
         if not possible_matches:
-            return (0, 0, self.raw_data_bytes[position])
+            return (0, 0, self._raw_data_bytes[position])
 
         longest_match = max(possible_matches, key=lambda x: x[1])
-        if len(self.raw_data_bytes) == position + longest_match[1]:
-            return longest_match[0], longest_match[1] - 1, self.raw_data_bytes[-1]
+        if len(self._raw_data_bytes) == position + longest_match[1]:
+            return longest_match[0], longest_match[1] - 1, self._raw_data_bytes[-1]
 
         return (
             longest_match[0],
             longest_match[1],
-            self.raw_data_bytes[position + longest_match[1]],
+            self._raw_data_bytes[position + longest_match[1]],
         )
 
     def set_compressed(self, compressed_data: bytes) -> None:
@@ -90,7 +115,11 @@ class LZ77:
         )
 
     def decompress(self) -> bytes:
-        """Decompresses the data."""
+        """Decompresses the data.
+
+        Returns:
+            bytes: Decompressed data in bytes
+        """
         decompressed: bytes = b""
         for i in range(0, len(self.compressed_data), 3):
             code = self.compressed_data[i : i + 3]
@@ -107,19 +136,15 @@ class LZ77:
                 )
             )
             decompressed += bytes([char])
-            if not self.raw_data_bytes.startswith(decompressed):
-                print(decompressed[:-2].decode("utf-8"), buffer_part)
-                print(i, len(self.compressed_data), offset, length, char)
-                raise ValueError("Decompressed data does not match the original data.")
         return decompressed
 
     def set_raw(self, raw_data: bytes) -> None:
         """Sets the raw data.
 
         Args:
-            raw_data (str): Raw data
+            raw_data (bytes): Raw data
         """
-        self.raw_data_bytes = raw_data
+        self._raw_data_bytes = raw_data
         self.raw_data = raw_data.decode("utf-8")
 
     def decompress_and_set(self) -> None:
@@ -130,7 +155,7 @@ class LZ77:
         """Saves the compressed data to a file.
 
         Args:
-            path: Path to the file
+            path (str): Path to the file
         """
         with open(path, "wb") as file:
             file.write(self.compressed_data)
@@ -139,7 +164,7 @@ class LZ77:
         """Saves the raw data to a file.
 
         Args:
-            path: Path to the file
+            path (str): Path to the file
         """
         with open(path, "w", encoding="utf-8") as file:
             file.write(self.raw_data)
