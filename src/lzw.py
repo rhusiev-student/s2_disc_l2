@@ -4,7 +4,13 @@ from typing import Iterable
 
 
 class LZW:
-    """LZW compression algorithm implementation class."""
+    """LZW compression algorithm implementation class.
+
+    Attributes:
+        raw_data (str): Raw data to compress.
+        raw_data_bytes (bytes): Raw data bytes.
+        compressed_data (bytes): Compressed data to decompress.
+    """
 
     def __init__(self, raw_data: str = "", compressed_data: bytes = b"") -> None:
         """Initialize LZW object.
