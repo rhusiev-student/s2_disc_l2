@@ -160,6 +160,15 @@ class LZ77:
         with open(path, "wb") as file:
             file.write(self.compressed_data)
 
+    def load_compressed(self, path: str) -> None:
+        """Loads the compressed data from a file.
+
+        Args:
+            path (str): Path to the file
+        """
+        with open(path, "rb") as file:
+            self.compressed_data = file.read()
+
     def save_raw(self, path: str) -> None:
         """Saves the raw data to a file.
 
@@ -168,3 +177,13 @@ class LZ77:
         """
         with open(path, "w", encoding="utf-8") as file:
             file.write(self.raw_data)
+
+    def load_raw(self, path: str) -> None:
+        """Loads the raw data from a file.
+
+        Args:
+            path (str): Path to the file
+        """
+        with open(path, "r", encoding="utf-8") as file:
+            self.raw_data = file.read()
+            self._raw_data_bytes = self.raw_data.encode("utf-8")
