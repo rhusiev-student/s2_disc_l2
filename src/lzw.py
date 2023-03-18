@@ -47,7 +47,7 @@ class LZW:
                 dictionary.append(prefix + [self.raw_data_bytes[i]])
 
         start_dict_bytes = bytes(start_dictionary)
-        compressed_bytes = bytes(compressed)
+        compressed_bytes = struct.pack(f"{len(compressed)}I", *compressed)
         start_dict_header = struct.pack("I", len(start_dict_bytes))
         compressed_header = struct.pack("I", len(compressed_bytes))
         return (
@@ -107,9 +107,12 @@ class LZW:
         compressed_size = struct.unpack(
             "I", self.compressed_data[4 + start_dict_size : 8 + start_dict_size]
         )[0]
-        compressed = self.compressed_data[
-            8 + start_dict_size : 8 + start_dict_size + compressed_size
-        ]
+        compressed = struct.unpack(
+            f"{compressed_size // 4}I",
+            self.compressed_data[
+                8 + start_dict_size : 8 + start_dict_size + compressed_size
+            ],
+        )
         dictionary = [[i] for i in start_dict]
         decompressed = []
         prev_i = compressed[0]
